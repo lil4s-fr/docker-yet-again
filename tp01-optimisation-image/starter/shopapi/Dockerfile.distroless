@@ -1,0 +1,22 @@
+FROM node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS production-dependencies
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+FROM gcr.io/distroless/nodejs20-debian12:nonroot@sha256:2cd820156cf039c8b54ae2d2a97e424b6729070714de8707a6b79f20d56f6a9a AS runtime
+WORKDIR /app
+ARG APP_VERSION=1.4.2
+ARG GIT_SHA=local
+ENV NODE_ENV=production \
+    APP_VERSION=${APP_VERSION}
+LABEL org.opencontainers.image.title="shopapi" \
+    org.opencontainers.image.version="${APP_VERSION}" \
+    org.opencontainers.image.revision="${GIT_SHA}" \
+    org.opencontainers.image.source="https://github.com/christopheutp/docker_ynov_10_26"
+COPY --from=production-dependencies --chown=nonroot:nonroot /app/node_modules ./node_modules
+COPY --chown=nonroot:nonroot package.json ./
+COPY --chown=nonroot:nonroot src/ ./src/
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD ["/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:3000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+CMD ["src/server.js"]
