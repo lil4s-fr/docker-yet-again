@@ -1,0 +1,60 @@
+services:
+  registry:
+    image: registry:2.8.3
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - registry-data:/var/lib/registry
+      - ./config.yml:/etc/docker/registry/config.yml:ro
+      - ./auth/htpasswd:/auth/htpasswd:ro
+      - ./certs/registry.crt:/certs/registry.crt:ro
+      - ./certs/registry.key:/certs/registry.key:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qS --no-check-certificate -O /dev/null https://127.0.0.1:5000/v2/ 2>&1 | grep -q '401 Unauthorized'
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  registry-ui:
+    image: joxit/docker-registry-ui:2.6.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+    environment:
+      SINGLE_REGISTRY: "true"
+      REGISTRY_TITLE: "Shop SAS private registry"
+      REGISTRY_SECURED: "true"
+      DELETE_IMAGES: "true"
+      SHOW_CONTENT_DIGEST: "true"
+      NGINX_PROXY_PASS_URL: "https://registry:5000"
+      NGINX_RESOLVER: "127.0.0.11"
+    depends_on:
+      registry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  mirror:
+    image: registry:2.8.3
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5001:5000"
+    volumes:
+      - mirror-data:/var/lib/registry
+      - ./mirror-config.yml:/etc/docker/registry/config.yml:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5000/v2/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  registry-data:
+  mirror-data:

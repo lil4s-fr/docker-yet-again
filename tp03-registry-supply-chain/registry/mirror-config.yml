@@ -1,0 +1,27 @@
+version: 0.1
+
+log:
+  level: info
+  fields:
+    service: shop-sas-docker-hub-mirror
+
+storage:
+  filesystem:
+    rootdirectory: /var/lib/registry
+  cache:
+    blobdescriptor: inmemory
+  delete:
+    enabled: true
+
+http:
+  addr: :5000
+
+proxy:
+  remoteurl: https://registry-1.docker.io
+  ttl: 168h
+
+health:
+  storagedriver:
+    enabled: true
+    interval: 10s
+    threshold: 3

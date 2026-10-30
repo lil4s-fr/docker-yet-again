@@ -1,0 +1,40 @@
+version: 0.1
+
+log:
+  level: info
+  fields:
+    service: shop-sas-registry
+
+storage:
+  filesystem:
+    rootdirectory: /var/lib/registry
+  cache:
+    blobdescriptor: inmemory
+  delete:
+    enabled: true
+
+catalog:
+  maxentries: 10000
+
+tags:
+  maxtags: 10000
+
+http:
+  addr: :5000
+  host: https://registry.local:5000
+  tls:
+    certificate: /certs/registry.crt
+    key: /certs/registry.key
+  headers:
+    X-Content-Type-Options: [nosniff]
+
+auth:
+  htpasswd:
+    realm: Shop SAS private registry
+    path: /auth/htpasswd
+
+health:
+  storagedriver:
+    enabled: true
+    interval: 10s
+    threshold: 3
